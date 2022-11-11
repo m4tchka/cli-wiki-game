@@ -2,7 +2,11 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
 	"os"
 	"strings"
 )
@@ -40,7 +44,7 @@ func handleInput() {
 	}
 
 }
-func getRandomArticle() {
+func getRandomArticle() Response {
 	url := "https://en.wikipedia.org/w/api.php?"
 	var params = map[string]string{
 		"action":       "query",
@@ -57,5 +61,22 @@ func getRandomArticle() {
 		var param = fmt.Sprintf("&%s=%s", k, v)
 		url += param
 	}
-	fmt.Println(url)
+	res, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	byteSlice, err := io.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	r := processResponse(byteSlice)
+	return r
+}
+func processResponse(b []byte) Response {
+	var res Response
+	err := json.Unmarshal(b, &res)
+	if err != nil {
+		log.Println(err)
+	}
+	return res
 }
