@@ -5,16 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 )
 
 func main() {
-	reader := bufio.NewReader(os.Stdin)
-	userInput := getUserInput(reader)
-	fmt.Println(userInput)
 	handleInput()
 	fmt.Println("Exiting...")
 }
@@ -57,26 +53,63 @@ func getRandomArticle() Response {
 	}
 
 	for k, v := range params {
-		fmt.Printf("Key %s has value %s\n", k, v)
+		// fmt.Printf("Key %s has value %s\n", k, v)
 		var param = fmt.Sprintf("&%s=%s", k, v)
 		url += param
 	}
+	fmt.Println("URL:", url)
 	res, err := http.Get(url)
 	if err != nil {
 		panic(err)
 	}
+	// fmt.Println("Response:", res)
 	byteSlice, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
 	r := processResponse(byteSlice)
+	// fmt.Println("ACTUAL RESPONSE -------->", r)
 	return r
 }
 func processResponse(b []byte) Response {
+	fmt.Println("B ----->", string(b))
 	var res Response
 	err := json.Unmarshal(b, &res)
 	if err != nil {
-		log.Println(err)
+		panic(err)
 	}
+	fmt.Println("res: ", res)
 	return res
+}
+
+func getSpecificArticle() Response {
+	url := "https://en.wikipedia.org/w/api.php?"
+	var params = map[string]string{
+		"action": "query",
+		"format": "json",
+		// "generator":    "random",
+		// "grnnamespace": "0",
+		"prop":        "links",
+		"pllimit":     "max",
+		"plnamespace": "0",
+	}
+
+	for k, v := range params {
+		// fmt.Printf("Key %s has value %s\n", k, v)
+		var param = fmt.Sprintf("&%s=%s", k, v)
+		url += param
+	}
+	fmt.Println("URL:", url)
+	res, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	// fmt.Println("Response:", res)
+	byteSlice, err := io.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	r := processResponse(byteSlice)
+	// fmt.Println("ACTUAL RESPONSE -------->", r)
+	return r
 }

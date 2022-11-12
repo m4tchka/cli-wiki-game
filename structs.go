@@ -2,8 +2,9 @@ package main
 
 type Response struct {
 	Continue struct {
-		Plcontinue string `json:"plcontinue"`
-		Continue   string `json:"continue"`
+		Plcontinue  string `json:"plcontinue,omitempty"`
+		Continue    string `json:"continue,omitempty"`
+		GrnContinue string `json:"grncontinue,omitempty"`
 	}
 	Query struct {
 		Pages struct {
@@ -16,7 +17,7 @@ type Response struct {
 		}
 	}
 	Limits struct {
-		Links int `json:"links"`
+		Links int `json:"links,omitempty"`
 	}
 }
 
