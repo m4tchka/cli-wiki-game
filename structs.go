@@ -7,14 +7,7 @@ type Response struct {
 		GrnContinue string `json:"grncontinue,omitempty"`
 	}
 	Query struct {
-		Pages struct {
-			int struct {
-				PageId int    `json:"pageId"`
-				Ns     int    `json:"ns"`
-				Title  string `json:"title"`
-				Links  []Link `json:"links"`
-			}
-		}
+		Pages map[int]Page
 	}
 	Limits struct {
 		Links int `json:"links,omitempty"`
@@ -24,4 +17,10 @@ type Response struct {
 type Link struct {
 	Ns    int    `json:"ns"`
 	Title string `json:"title"`
+}
+type Page struct {
+	PageId int    `json:"pageId"`
+	Ns     int    `json:"ns"`
+	Title  string `json:"title"`
+	Links  []Link `json:"links"`
 }
