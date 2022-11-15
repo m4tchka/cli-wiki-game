@@ -15,7 +15,8 @@ func main() {
 	fmt.Println("Exiting...")
 }
 
-func getUserInput(r *bufio.Reader) string {
+func getUserInput() string {
+	r := bufio.NewReader(os.Stdin)
 	line, err := r.ReadString('\n')
 	if err != nil {
 		panic(err)
@@ -24,11 +25,10 @@ func getUserInput(r *bufio.Reader) string {
 }
 
 func handleInput() {
-	reader := bufio.NewReader(os.Stdin)
 	action := ""
 	for action != "exit" {
 
-		action = getUserInput(reader)
+		action = getUserInput()
 		switch action {
 		case "help":
 		case "start":
@@ -37,7 +37,15 @@ func handleInput() {
 			for _, v := range res.Query.Pages {
 				rA = v
 			}
-			displayLinks(rA)
+			links := getAndDisplayLinks(rA)
+			choice := getUserInput()
+			isLinkValid := checkIsLinkValid(links, choice)
+			if isLinkValid {
+				getSpecificArticle(choice)
+			} else {
+				"reprompt"
+			}
+
 		case "exit":
 		default:
 			fmt.Println("Invalid action")
@@ -56,9 +64,7 @@ func getRandomArticle() Response {
 		"pllimit":      "max",
 		"plnamespace":  "0",
 	}
-
 	for k, v := range params {
-		// fmt.Printf("Key %s has value %s\n", k, v)
 		var param = fmt.Sprintf("&%s=%s", k, v)
 		url += param
 	}
@@ -67,13 +73,11 @@ func getRandomArticle() Response {
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println("Response:", res)
 	byteSlice, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
 	r := processResponse(byteSlice)
-	// fmt.Println("ACTUAL RESPONSE -------->", r)
 	return r
 }
 func processResponse(b []byte) Response {
@@ -85,8 +89,7 @@ func processResponse(b []byte) Response {
 	// fmt.Println("res: ", res)
 	return res
 }
-
-func getSpecificArticle() Response {
+func getSpecificArticle(t string) Response {
 	url := "https://en.wikipedia.org/w/api.php?"
 	var params = map[string]string{
 		"action": "query",
@@ -117,9 +120,26 @@ func getSpecificArticle() Response {
 	// fmt.Println("ACTUAL RESPONSE -------->", r)
 	return r
 }
-func displayLinks(p Page) {
+func checkIsLinkValid(linkSlice []Link, choice string) bool {
+	for _, v := range linkSlice {
+		if strings.ToLower(v.Title) == choice {
+			return true
+		}
+	}
+	return false
+}
+func getAndDisplayLinks(p Page) []Link {
 	fmt.Printf("\nLinks from the page `%s`:\n", p.Title)
 	for _, v := range p.Links {
 		fmt.Println(v.Title)
 	}
+	return p.Links
 }
+
+/*
+ get a list of valid links (and display them)
+ get user input (of a link that they want to "click" on)
+ check that link is valid
+ fetch that link
+ get a list of valid links from the fetched link...
+*/
