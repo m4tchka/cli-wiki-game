@@ -32,7 +32,12 @@ func handleInput() {
 		switch action {
 		case "help":
 		case "start":
-			getRandomArticle()
+			res := getRandomArticle()
+			var rA Page
+			for _, v := range res.Query.Pages {
+				rA = v
+			}
+			displayLinks(rA)
 		case "exit":
 		default:
 			fmt.Println("Invalid action")
@@ -72,13 +77,12 @@ func getRandomArticle() Response {
 	return r
 }
 func processResponse(b []byte) Response {
-	fmt.Println("B ----->", string(b))
 	var res Response
 	err := json.Unmarshal(b, &res)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("res: ", res)
+	// fmt.Println("res: ", res)
 	return res
 }
 
@@ -112,4 +116,10 @@ func getSpecificArticle() Response {
 	r := processResponse(byteSlice)
 	// fmt.Println("ACTUAL RESPONSE -------->", r)
 	return r
+}
+func displayLinks(p Page) {
+	fmt.Printf("\nLinks from the page `%s`:\n", p.Title)
+	for _, v := range p.Links {
+		fmt.Println(v.Title)
+	}
 }

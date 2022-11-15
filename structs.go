@@ -14,13 +14,13 @@ type Response struct {
 	}
 }
 
-type Link struct {
-	Ns    int    `json:"ns"`
-	Title string `json:"title"`
-}
 type Page struct {
 	PageId int    `json:"pageId"`
 	Ns     int    `json:"ns"`
 	Title  string `json:"title"`
 	Links  []Link `json:"links"`
+}
+type Link struct {
+	Ns    int    `json:"ns"`
+	Title string `json:"title"`
 }
