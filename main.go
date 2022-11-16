@@ -26,14 +26,16 @@ func getUserInput() string { // Prompt for option, return user input as string
 
 func handleInput() { // Function to handle user input and call corresponding functions
 	var action string
+	var target string
 	for action != "quit" {
 		var startPage Page
-		var target string
+		action = getUserInput()
 		switch action {
 		case "get target":
-			randomArticleResponse := getRandomArticle()
-			randomPage := getPageFromResponse(randomArticleResponse)
-			target = randomPage.Title
+			targetArticleResponse := getRandomArticle()
+			targetPage := getPageFromResponse(targetArticleResponse)
+			target = targetPage.Title
+			fmt.Printf("\nTarget page: %s\nTarget description: %v\n", target, targetPage.Extract)
 		case "start":
 			startArticleResponse := getRandomArticle()
 			startPage = getPageFromResponse(startArticleResponse)
@@ -48,9 +50,14 @@ func getRandomArticle() Response { // Function to get a random article and retur
 		"format":       "json",
 		"generator":    "random",
 		"grnnamespace": "0",
-		"prop":         "links",
-		"pllimit":      "max",
-		"plnamespace":  "0",
+		// "prop":         "links",
+		// "pllimit":      "max",
+		// "plnamespace":  "0",
+		"prop": "extracts",
+		// "rvprop":      "content",
+		"exintro":     "",
+		"explaintext": "",
+		"redirects":   "1",
 	}
 	for k, v := range params {
 		var param = fmt.Sprintf("&%s=%s", k, v)
@@ -87,6 +94,7 @@ func getSpecificArticle(t string) Response { // FIXME: Function to get a specifi
 		"prop":        "links",
 		"pllimit":     "max",
 		"plnamespace": "0",
+		"titles":      t,
 	}
 
 	for k, v := range params {
@@ -135,7 +143,9 @@ func startGame(p Page, t string) {
 	for currentPage.Title != t {
 		currentLinks := getAndDisplayLinks(currentPage)
 		userChoice := getUserInput()
-		checkIsLinkValid(currentLinks, userChoice)
+		if checkIsLinkValid(currentLinks, userChoice) {
+			getSpecificArticle(userChoice)
+		}
 	}
 }
 

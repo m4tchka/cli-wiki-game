@@ -15,10 +15,11 @@ type Response struct {
 }
 
 type Page struct {
-	PageId int    `json:"pageId"`
-	Ns     int    `json:"ns"`
-	Title  string `json:"title"`
-	Links  []Link `json:"links"`
+	PageId  int    `json:"pageId"`
+	Ns      int    `json:"ns"`
+	Title   string `json:"title"`
+	Links   []Link `json:"links,omitempty"`
+	Extract string `json:"extract,omitempty"`
 }
 type Link struct {
 	Ns    int    `json:"ns"`
