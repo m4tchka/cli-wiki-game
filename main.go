@@ -32,38 +32,45 @@ func handleInput() { // Function to handle user input and call corresponding fun
 		action = getUserInput()
 		switch action {
 		case "get target":
-			targetArticleResponse := getRandomArticle()
+			targetArticleResponse := getRandomArticleWithLinks(false)
 			targetPage := getPageFromResponse(targetArticleResponse)
 			target = targetPage.Title
-			fmt.Printf("\nTarget page: %s\nTarget description: %v\n", target, targetPage.Extract)
+			fmt.Printf("\nTarget page:        %s\nTarget description: %v\n", target, targetPage.Extract)
 		case "start":
-			startArticleResponse := getRandomArticle()
-			startPage = getPageFromResponse(startArticleResponse)
-			startGame(startPage, target)
+			if target != "" {
+				startArticleResponse := getRandomArticleWithLinks(true)
+				startPage = getPageFromResponse(startArticleResponse)
+				startGame(startPage, target)
+			} else { //TODO: Add a "get target manually" function to set a specific target page
+				fmt.Println("Please set a random target page first, with `get target`!")
+			}
 		}
 	}
 }
-func getRandomArticle() Response { // Function to get a random article and return a response struct
+func getRandomArticleWithLinks(b bool) Response { // Function to get a random article and return a response struct
 	url := "https://en.wikipedia.org/w/api.php?"
-	var params = map[string]string{
+	var params = map[string]string{ // Default params - get links
 		"action":       "query",
 		"format":       "json",
 		"generator":    "random",
 		"grnnamespace": "0",
-		// "prop":         "links",
-		// "pllimit":      "max",
-		// "plnamespace":  "0",
-		"prop": "extracts",
-		// "rvprop":      "content",
-		"exintro":     "",
-		"explaintext": "",
-		"redirects":   "1",
+		"prop":         "links",
+		"pllimit":      "max",
+		"plnamespace":  "0",
+	}
+	if !b { // If function is passed false, change params to extracts
+		params["prop"] = "extracts"
+		params["exintro"] = ""
+		params["explaintext"] = ""
+		params["redirects"] = "1"
+		delete(params, "pllimit")
+		delete(params, "plnamespace")
 	}
 	for k, v := range params {
 		var param = fmt.Sprintf("&%s=%s", k, v)
 		url += param
 	}
-	fmt.Println("URL:", url)
+	fmt.Println("random article URL:", url)
 	res, err := http.Get(url)
 	if err != nil {
 		panic(err)
@@ -126,8 +133,8 @@ func checkIsLinkValid(linkSlice []Link, choice string) bool { // Function to che
 }
 func getAndDisplayLinks(p Page) []Link { // Function that prints all the links in a page to the console, in a easier-to-read format.
 	fmt.Printf("\nLinks from the page `%s`:\n", p.Title)
-	for _, v := range p.Links {
-		fmt.Println(v.Title)
+	for i, v := range p.Links {
+		fmt.Println(i, v.Title)
 	}
 	return p.Links
 }
