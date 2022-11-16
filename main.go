@@ -25,7 +25,21 @@ func getUserInput() string { // Prompt for option, return user input as string
 }
 
 func handleInput() { // Function to handle user input and call corresponding functions
-
+	var action string
+	for action != "quit" {
+		var startPage Page
+		var target string
+		switch action {
+		case "get target":
+			randomArticleResponse := getRandomArticle()
+			randomPage := getPageFromResponse(randomArticleResponse)
+			target = randomPage.Title
+		case "start":
+			startArticleResponse := getRandomArticle()
+			startPage = getPageFromResponse(startArticleResponse)
+			startGame(startPage, target)
+		}
+	}
 }
 func getRandomArticle() Response { // Function to get a random article and return a response struct
 	url := "https://en.wikipedia.org/w/api.php?"
@@ -115,6 +129,14 @@ func getPageFromResponse(res Response) Page {
 		p = v
 	}
 	return p
+}
+func startGame(p Page, t string) {
+	currentPage := p
+	for currentPage.Title != t {
+		currentLinks := getAndDisplayLinks(currentPage)
+		userChoice := getUserInput()
+		checkIsLinkValid(currentLinks, userChoice)
+	}
 }
 
 /*
