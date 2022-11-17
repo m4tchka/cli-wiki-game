@@ -35,7 +35,8 @@ func handleInput() { // Function to handle user input and call corresponding fun
 	fmt.Println(instructions)
 	for action != "exit" {
 		var startPage Page
-		count := 0
+		var count int
+		var linksTaken []string
 		action = strings.ToLower(getUserInput())
 		switch action {
 		case "get random target":
@@ -52,11 +53,12 @@ func handleInput() { // Function to handle user input and call corresponding fun
 				startPage = getPageFromResponse(startArticleResponse)
 				fmt.Printf("Starting page:\n%s\n%s\n", startPage.Title, startPage.Extract)
 				startTime = time.Now()
-				count = startGame(startPage, target) // This when the actual gameplay loop starts
+				count, linksTaken = startGame(startArticleResponse, target) // This when the actual gameplay loop starts
 				totalDuration := time.Since(startTime)
 				stringDuration := totalDuration.String()
 				fmt.Println(">>> Congratulations ! <<<")
 				fmt.Printf("You took %d jumps and %s to get to the page %s from %s\n", count, stringDuration, target, startPage.Title)
+				fmt.Printf("You took the route: %s\n", strings.Join(linksTaken, " -> "))
 			} else {
 				fmt.Println("Please set a target page first, with 'get random target' or 'get specific target'!")
 			}
@@ -133,6 +135,10 @@ func getSpecificArticle(t string) Response { // FIXME: Function to get a specifi
 		"redirects":   "1",
 		"titles":      url.QueryEscape(t),
 	}
+	/* 	if cont != "" && plcont != "" {
+		params["continue"]= cont
+		params["plcontinue"]= plcont
+	} */
 
 	for k, v := range params {
 		// fmt.Printf("Key %s has value %s\n", k, v)
@@ -164,7 +170,11 @@ func checkIsLinkValid(linkSlice []Link, choice string) (bool, string) { // Funct
 func getAndDisplayLinks(p Page) []Link { // Function that prints all the links in a page to the console, in a easier-to-read format.
 	fmt.Printf("\nLinks from the page `%s`:\n", p.Title)
 	for i, v := range p.Links {
-		fmt.Println(i, v.Title)
+		if i%5 != 0 {
+			fmt.Printf("%-30s ", v.Title)
+		} else {
+			fmt.Printf("%-30s\n ", v.Title)
+		}
 	}
 	return p.Links
 }
@@ -175,23 +185,90 @@ func getPageFromResponse(res Response) Page { // Function to extract the page fr
 	}
 	return p
 }
-func startGame(p Page, t string) int {
+func startGame(startResponse Response, t string) (int, []string) {
+	currentResponse := startResponse
+	startPage := getPageFromResponse(startResponse)
 	count := 0
-	currentPage := p
+	var clickedLinks = []string{startPage.Title}
+	currentPage := startPage
 	for currentPage.Title != t {
 		currentLinks := getAndDisplayLinks(currentPage)
+		if len(currentLinks) == 500 {
+			currentLinks = getAdditionalLinks(currentResponse, currentPage.Title, currentLinks)
+		}
 		userChoice := getUserInput()
 		isLinkValid, validChoice := checkIsLinkValid(currentLinks, userChoice)
 		if isLinkValid {
-			selectedArticle := getSpecificArticle(validChoice)
-			currentPage = getPageFromResponse(selectedArticle)
-			fmt.Printf("Target page: %s\nCurrent page:   %s\n%s\n", t, currentPage.Title, currentPage.Extract)
+			currentResponse = getSpecificArticle(validChoice)
+			// if selectedArticle.Continue.Continue != "" {
+
+			// }
+			currentPage = getPageFromResponse(currentResponse)
+			clickedLinks = append(clickedLinks, currentPage.Title)
+			fmt.Printf("Target page: %s\nCurrent page:\n%s\n%s\n", t, currentPage.Title, currentPage.Extract)
 			count++
 		} else {
 			fmt.Println("Link not found !")
 		}
 	}
-	return count
+	return count, clickedLinks
+}
+func getAdditionalLinks(r Response, t string, firstLinks []Link) []Link {
+	baseURL := "https://en.wikipedia.org/w/api.php?"
+	done := false
+	var params = map[string]string{
+		"action":      "query",
+		"format":      "json",
+		"prop":        "links|extracts",
+		"pllimit":     "max",
+		"plnamespace": "0",
+		"exintro":     "",
+		"explaintext": "",
+		"redirects":   "1",
+		"titles":      url.QueryEscape(t),
+	}
+	for k, v := range params {
+		var param = fmt.Sprintf("&%s=%s", k, v)
+		baseURL += param
+	}
+	for !done {
+		baseURL2 := "https://en.wikipedia.org/w/api.php?"
+		var params = map[string]string{
+			"action":      "query",
+			"format":      "json",
+			"prop":        "links|extracts",
+			"pllimit":     "max",
+			"plnamespace": "0",
+			"exintro":     "",
+			"explaintext": "",
+			"redirects":   "1",
+			"titles":      url.QueryEscape(t),
+			"continue":    url.QueryEscape(r.Continue.Continue),
+			"plcontinue":  url.QueryEscape(r.Continue.Plcontinue),
+		}
+		for k, v := range params {
+			var param = fmt.Sprintf("&%s=%s", k, v)
+			baseURL2 += param
+		}
+		fmt.Println("specific article URL:", baseURL2)
+		res, err := http.Get(baseURL2)
+		if err != nil {
+			panic(err)
+		}
+		// fmt.Println("Response:", res)
+		byteSlice, err := io.ReadAll(res.Body)
+		if err != nil {
+			panic(err)
+		}
+		r = processResponse(byteSlice)
+		nextPage := getPageFromResponse(r)
+		firstLinks = append(firstLinks, getAndDisplayLinks(nextPage)...)
+		if r.Continue.Continue == "" && r.Continue.Plcontinue == "" {
+			fmt.Printf("done -> %v\n", r.BatchComplete)
+			done = true
+		}
+	}
+	return firstLinks
 }
 
 /*
@@ -199,6 +276,7 @@ upon typing getRandom- get a random article - set it's title to be the target pa
 then, upon typing start, get another random article (the start page)
 
  get a list of links from the current page (and display them)
+ if the response for the requested page has a continue struct, then make another request with the values in the continue struct, and append the links from that request to the array of links.
  get user input (of a link that they want to "click" on)
  check that link is valid
  fetch that link

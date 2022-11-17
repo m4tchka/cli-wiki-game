@@ -1,7 +1,8 @@
 package main
 
 type Response struct {
-	Continue struct {
+	BatchComplete string `json:"batchcomplete,omitempty"`
+	Continue      struct {
 		Plcontinue  string `json:"plcontinue,omitempty"`
 		Continue    string `json:"continue,omitempty"`
 		GrnContinue string `json:"grncontinue,omitempty"`
