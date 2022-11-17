@@ -45,8 +45,10 @@ func handleInput() { // Function to handle user input and call corresponding fun
 			target = targetPage.Title
 			fmt.Printf("\nTarget page:\n%s\n%s\n", target, targetPage.Extract)
 		case "get specific target":
-			//TODO: Add a "get target manually" function to set a specific target page
-			fmt.Println("Not implemented yet")
+			targetArticleResponse := getSpecificArticle(getUserInput())
+			targetPage := getPageFromResponse(targetArticleResponse)
+			target = targetPage.Title
+			fmt.Printf("\nTarget page:\n%s\n%s\n", target, targetPage.Extract)
 		case "start":
 			if target != "" {
 				startArticleResponse := getRandomArticleWithLinks(true)
@@ -120,9 +122,9 @@ func processResponse(b []byte) Response { // Function to turn a byte slice into 
 	// fmt.Println("res: ", res)
 	return res
 }
-func getSpecificArticle(t string) Response { // FIXME: Function to get a specific article (based on user input) and return a response struct
+func getSpecificArticle(t string) Response { // Function to get a specific article (based on user input) and return a response struct
 	// TODO: WARNING: Does not work with spaces in the name - %20 isntead ?
-	fmt.Println("GetSpecificArticle called -----------------")
+	fmt.Printf("------------- Getting article for %s -----------------", t)
 	baseURL := "https://en.wikipedia.org/w/api.php?"
 	var params = map[string]string{
 		"action":      "query",
@@ -135,17 +137,12 @@ func getSpecificArticle(t string) Response { // FIXME: Function to get a specifi
 		"redirects":   "1",
 		"titles":      url.QueryEscape(t),
 	}
-	/* 	if cont != "" && plcont != "" {
-		params["continue"]= cont
-		params["plcontinue"]= plcont
-	} */
-
 	for k, v := range params {
 		// fmt.Printf("Key %s has value %s\n", k, v)
 		var param = fmt.Sprintf("&%s=%s", k, v)
 		baseURL += param
 	}
-	fmt.Println("specific article URL:", baseURL)
+	fmt.Println("\nSpecific article URL:", baseURL)
 	res, err := http.Get(baseURL)
 	if err != nil {
 		panic(err)
@@ -170,12 +167,13 @@ func checkIsLinkValid(linkSlice []Link, choice string) (bool, string) { // Funct
 func getAndDisplayLinks(p Page) []Link { // Function that prints all the links in a page to the console, in a easier-to-read format.
 	fmt.Printf("\nLinks from the page `%s`:\n", p.Title)
 	for i, v := range p.Links {
-		if i%5 != 0 {
+		if i%6 != 0 || i == 0 {
 			fmt.Printf("%-30s ", v.Title)
 		} else {
 			fmt.Printf("%-30s\n ", v.Title)
 		}
 	}
+	fmt.Println()
 	return p.Links
 }
 func getPageFromResponse(res Response) Page { // Function to extract the page from the response
@@ -200,9 +198,6 @@ func startGame(startResponse Response, t string) (int, []string) {
 		isLinkValid, validChoice := checkIsLinkValid(currentLinks, userChoice)
 		if isLinkValid {
 			currentResponse = getSpecificArticle(validChoice)
-			// if selectedArticle.Continue.Continue != "" {
-
-			// }
 			currentPage = getPageFromResponse(currentResponse)
 			clickedLinks = append(clickedLinks, currentPage.Title)
 			fmt.Printf("Target page: %s\nCurrent page:\n%s\n%s\n", t, currentPage.Title, currentPage.Extract)
@@ -250,7 +245,7 @@ func getAdditionalLinks(r Response, t string, firstLinks []Link) []Link {
 			var param = fmt.Sprintf("&%s=%s", k, v)
 			baseURL2 += param
 		}
-		fmt.Println("specific article URL:", baseURL2)
+		fmt.Println( /* "specific article URL:", baseURL2 */ )
 		res, err := http.Get(baseURL2)
 		if err != nil {
 			panic(err)
@@ -264,7 +259,7 @@ func getAdditionalLinks(r Response, t string, firstLinks []Link) []Link {
 		nextPage := getPageFromResponse(r)
 		firstLinks = append(firstLinks, getAndDisplayLinks(nextPage)...)
 		if r.Continue.Continue == "" && r.Continue.Plcontinue == "" {
-			fmt.Printf("done -> %v\n", r.BatchComplete)
+			fmt.Printf("---------- End of links ----------  %v\n", r.BatchComplete)
 			done = true
 		}
 	}
