@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -21,7 +22,7 @@ func getUserInput() string { // Prompt for option, return user input as string
 	if err != nil {
 		panic(err)
 	}
-	return strings.ToLower(strings.TrimSpace(line))
+	return strings.TrimSpace(line)
 }
 
 func handleInput() { // Function to handle user input and call corresponding functions
@@ -29,7 +30,7 @@ func handleInput() { // Function to handle user input and call corresponding fun
 	var target string
 	for action != "quit" {
 		var startPage Page
-		action = getUserInput()
+		action = strings.ToLower(getUserInput())
 		switch action {
 		case "get target":
 			targetArticleResponse := getRandomArticleWithLinks(false)
@@ -48,7 +49,7 @@ func handleInput() { // Function to handle user input and call corresponding fun
 	}
 }
 func getRandomArticleWithLinks(b bool) Response { // Function to get a random article and return a response struct
-	url := "https://en.wikipedia.org/w/api.php?"
+	baseURL := "https://en.wikipedia.org/w/api.php?"
 	var params = map[string]string{ // Default params - get links
 		"action":       "query",
 		"format":       "json",
@@ -57,7 +58,7 @@ func getRandomArticleWithLinks(b bool) Response { // Function to get a random ar
 		"prop":         "links",
 		"pllimit":      "max",
 		"plnamespace":  "0",
-	}
+	} // https://en.wikipedia.org/w/api.php?&generator=random&grnnamespace=0&prop=links&pllimit=max&plnamespace=0&action=query&format=json
 	if !b { // If function is passed false, change params to extracts
 		params["prop"] = "extracts"
 		params["exintro"] = ""
@@ -65,13 +66,13 @@ func getRandomArticleWithLinks(b bool) Response { // Function to get a random ar
 		params["redirects"] = "1"
 		delete(params, "pllimit")
 		delete(params, "plnamespace")
-	}
+	} // https://en.wikipedia.org/w/api.php?&exintro=&action=query&grnnamespace=0&prop=extracts&explaintext=&redirects=1&format=json&generator=random
 	for k, v := range params {
 		var param = fmt.Sprintf("&%s=%s", k, v)
-		url += param
+		baseURL += param
 	}
-	fmt.Println("random article URL:", url)
-	res, err := http.Get(url)
+	fmt.Println("random article URL:", baseURL)
+	res, err := http.Get(baseURL)
 	if err != nil {
 		panic(err)
 	}
@@ -92,7 +93,8 @@ func processResponse(b []byte) Response { // Function to turn a byte slice into 
 	return res
 }
 func getSpecificArticle(t string) Response { // FIXME: Function to get a specific article (based on user input) and return a response struct
-	url := "https://en.wikipedia.org/w/api.php?"
+	// TODO: WARNING: Does not work with spaces in the name - %20 isntead ?
+	baseURL := "https://en.wikipedia.org/w/api.php?"
 	var params = map[string]string{
 		"action": "query",
 		"format": "json",
@@ -101,16 +103,16 @@ func getSpecificArticle(t string) Response { // FIXME: Function to get a specifi
 		"prop":        "links",
 		"pllimit":     "max",
 		"plnamespace": "0",
-		"titles":      t,
+		"titles":      url.QueryEscape(t),
 	}
 
 	for k, v := range params {
 		// fmt.Printf("Key %s has value %s\n", k, v)
 		var param = fmt.Sprintf("&%s=%s", k, v)
-		url += param
+		baseURL += param
 	}
-	fmt.Println("URL:", url)
-	res, err := http.Get(url)
+	fmt.Println("specific article URL:", baseURL)
+	res, err := http.Get(baseURL)
 	if err != nil {
 		panic(err)
 	}
@@ -151,7 +153,8 @@ func startGame(p Page, t string) {
 		currentLinks := getAndDisplayLinks(currentPage)
 		userChoice := getUserInput()
 		if checkIsLinkValid(currentLinks, userChoice) {
-			getSpecificArticle(userChoice)
+			selectedArticle := getSpecificArticle(userChoice)
+			currentPage = getPageFromResponse(selectedArticle)
 		}
 	}
 }
