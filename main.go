@@ -31,7 +31,7 @@ func handleInput() { // Function to handle user input and call corresponding fun
 	var target string
 	var startTime time.Time
 	fmt.Println("Welcome to wiki game CLI !")
-	instructions := fmt.Sprintf("%-20s- Get a random target page, or if there already is a target, rerolls for a new random target\n%-20s- With a target, get a random start page\n%-20s- Display available commands\n%-20s- Exit the game\n", "get random target", "start", "help", "exit")
+	instructions := fmt.Sprintf("%-25s- Get a random target page, or if there already is a target, rerolls for a new random target\n%-25s- Get a specified target page, by entering its name on the line below\n%-25s- With a target, get a random start page\n%-25s- Display available commands\n%-25s- Exit the game\n", "get random target", "get specific target", "start", "help", "exit")
 	fmt.Println(instructions)
 	for action != "exit" {
 		var startPage Page
@@ -45,6 +45,7 @@ func handleInput() { // Function to handle user input and call corresponding fun
 			target = targetPage.Title
 			fmt.Printf("\nTarget page:\n%s\n%s\n", target, targetPage.Extract)
 		case "get specific target":
+			fmt.Print("Define a target page to navigate to: ")
 			targetArticleResponse := getSpecificArticle(getUserInput())
 			targetPage := getPageFromResponse(targetArticleResponse)
 			target = targetPage.Title
@@ -58,9 +59,9 @@ func handleInput() { // Function to handle user input and call corresponding fun
 				count, linksTaken = startGame(startArticleResponse, target) // This when the actual gameplay loop starts
 				totalDuration := time.Since(startTime)
 				stringDuration := totalDuration.String()
-				fmt.Println(">>> Congratulations ! <<<")
-				fmt.Printf("You took %d jumps and %s to get to the page %s from %s\n", count, stringDuration, target, startPage.Title)
-				fmt.Printf("You took the route: %s\n", strings.Join(linksTaken, " -> "))
+				fmt.Println("\n>>> Congratulations ! <<<")
+				fmt.Printf("\nYou took %d jumps and %s to get to the page %s from %s\n", count, stringDuration, target, startPage.Title)
+				fmt.Printf("\nYou took the route: %s\n", strings.Join(linksTaken, " -> "))
 			} else {
 				fmt.Println("Please set a target page first, with 'get random target' or 'get specific target'!")
 			}
@@ -70,7 +71,6 @@ func handleInput() { // Function to handle user input and call corresponding fun
 			action = "exit"
 		default:
 			fmt.Println("Invalid action !\nType 'help' for available commands.")
-			// fmt.Println("Invalid action !\n'get target' - Get a random target page\n'start' - With a target, gets a random start page\n'exit' - exits the game.")
 		}
 
 	}
@@ -119,11 +119,9 @@ func processResponse(b []byte) Response { // Function to turn a byte slice into 
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println("res: ", res)
 	return res
 }
 func getSpecificArticle(t string) Response { // Function to get a specific article (based on user input) and return a response struct
-	// TODO: WARNING: Does not work with spaces in the name - %20 isntead ?
 	fmt.Printf("------------- Getting article for %s -----------------", t)
 	baseURL := "https://en.wikipedia.org/w/api.php?"
 	var params = map[string]string{
@@ -138,7 +136,6 @@ func getSpecificArticle(t string) Response { // Function to get a specific artic
 		"titles":      url.QueryEscape(t),
 	}
 	for k, v := range params {
-		// fmt.Printf("Key %s has value %s\n", k, v)
 		var param = fmt.Sprintf("&%s=%s", k, v)
 		baseURL += param
 	}
@@ -147,20 +144,18 @@ func getSpecificArticle(t string) Response { // Function to get a specific artic
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println("Response:", res)
 	byteSlice, err := io.ReadAll(res.Body)
 	if err != nil {
 		panic(err)
 	}
 	r := processResponse(byteSlice)
-	// fmt.Println("ACTUAL RESPONSE -------->", r)
 	return r
 }
 func checkIsLinkValid(linkSlice []Link, choice string) (bool, string) { // Function to check that the user has inputted a valid link (based on the current page)
 	for _, v := range linkSlice {
 		if strings.EqualFold(v.Title, choice) {
 			return true, v.Title
-		} // WARNING: SUS
+		}
 	}
 	return false, ""
 }
@@ -245,12 +240,11 @@ func getAdditionalLinks(r Response, t string, firstLinks []Link) []Link {
 			var param = fmt.Sprintf("&%s=%s", k, v)
 			baseURL2 += param
 		}
-		fmt.Println( /* "specific article URL:", baseURL2 */ )
+		fmt.Println()
 		res, err := http.Get(baseURL2)
 		if err != nil {
 			panic(err)
 		}
-		// fmt.Println("Response:", res)
 		byteSlice, err := io.ReadAll(res.Body)
 		if err != nil {
 			panic(err)
