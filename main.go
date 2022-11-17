@@ -30,30 +30,42 @@ func handleInput() { // Function to handle user input and call corresponding fun
 	var action string
 	var target string
 	var startTime time.Time
-	for action != "quit" {
+	fmt.Println("Welcome to wiki game CLI !")
+	instructions := fmt.Sprintf("%-20s- Get a random target page, or if there already is a target, rerolls for a new random target\n%-20s- With a target, get a random start page\n%-20s- Display available commands\n%-20s- Exit the game\n", "get random target", "start", "help", "exit")
+	fmt.Println(instructions)
+	for action != "exit" {
 		var startPage Page
 		count := 0
 		action = strings.ToLower(getUserInput())
 		switch action {
-		case "get target":
+		case "get random target":
 			targetArticleResponse := getRandomArticleWithLinks(false)
 			targetPage := getPageFromResponse(targetArticleResponse)
 			target = targetPage.Title
 			fmt.Printf("\nTarget page:        %s\nTarget description: %v\n", target, targetPage.Extract)
+		case "get specific target":
+			fmt.Println("Not implemented yet")
 		case "start":
 			if target != "" {
 				startArticleResponse := getRandomArticleWithLinks(true)
 				startPage = getPageFromResponse(startArticleResponse)
-				count = startGame(startPage, target)
 				startTime = time.Now()
+				count = startGame(startPage, target) // This when the actual gameplay loop starts
+				totalDuration := time.Since(startTime)
+				stringDuration := totalDuration.String()
+				fmt.Println(">>> Congratulations ! <<<")
+				fmt.Printf("You took %d jumps and %s to get to the page %s from %s\n", count, stringDuration, target, startPage.Title)
 			} else { //TODO: Add a "get target manually" function to set a specific target page
-				fmt.Println("Please set a random target page first, with `get target`!")
+				fmt.Println("Please set a target page first, with 'get random target' or 'get specific target'!")
 			}
+		case "help":
+			fmt.Println(instructions)
+		case "exit":
+			action = "exit"
+		default:
+			fmt.Println("Invalid action !\nType 'help' for available commands.")
+			// fmt.Println("Invalid action !\n'get target' - Get a random target page\n'start' - With a target, gets a random start page\n'exit' - exits the game.")
 		}
-		totalDuration := time.Since(startTime)
-		stringDuration := totalDuration.String()
-		fmt.Println(">>> Congratulations ! <<<")
-		fmt.Printf("You took %d jumps and %s to get to the page %s from %s\n", count, stringDuration, target, startPage.Title)
 
 	}
 }
@@ -150,9 +162,9 @@ func getAndDisplayLinks(p Page) []Link { // Function that prints all the links i
 	}
 	return p.Links
 }
-func getPageFromResponse(res Response) Page {
+func getPageFromResponse(res Response) Page { // Function to extract the page from the response
 	var p Page
-	for _, v := range res.Query.Pages {
+	for _, v := range res.Query.Pages { // Loop is needed since pages are returned in a map of ints to Pages, but the int key is not known beforehand. Only a single page is returned.
 		p = v
 	}
 	return p
@@ -162,7 +174,7 @@ func startGame(p Page, t string) int {
 	currentPage := p
 	for currentPage.Title != t {
 		currentLinks := getAndDisplayLinks(currentPage)
-		fmt.Printf("Current page: %s, Current target: %s\n", t, currentPage.Title)
+		fmt.Printf("Current page:   %s\n, Current target: %s\n", currentPage.Title, t)
 		userChoice := getUserInput()
 		isLinkValid, validChoice := checkIsLinkValid(currentLinks, userChoice)
 		if isLinkValid {
