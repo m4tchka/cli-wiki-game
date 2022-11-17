@@ -30,6 +30,7 @@ func handleInput() { // Function to handle user input and call corresponding fun
 	var target string
 	for action != "quit" {
 		var startPage Page
+		count := 0
 		action = strings.ToLower(getUserInput())
 		switch action {
 		case "get target":
@@ -41,11 +42,12 @@ func handleInput() { // Function to handle user input and call corresponding fun
 			if target != "" {
 				startArticleResponse := getRandomArticleWithLinks(true)
 				startPage = getPageFromResponse(startArticleResponse)
-				startGame(startPage, target)
+				count = startGame(startPage, target)
 			} else { //TODO: Add a "get target manually" function to set a specific target page
 				fmt.Println("Please set a random target page first, with `get target`!")
 			}
 		}
+		fmt.Printf("\nCongratulations ! It took you %d jumps to get to the page %s from %s\n", count, target, startPage.Title)
 	}
 }
 func getRandomArticleWithLinks(b bool) Response { // Function to get a random article and return a response struct
@@ -94,6 +96,7 @@ func processResponse(b []byte) Response { // Function to turn a byte slice into 
 }
 func getSpecificArticle(t string) Response { // FIXME: Function to get a specific article (based on user input) and return a response struct
 	// TODO: WARNING: Does not work with spaces in the name - %20 isntead ?
+	fmt.Println("GetSpecificArticle called -----------------")
 	baseURL := "https://en.wikipedia.org/w/api.php?"
 	var params = map[string]string{
 		"action": "query",
@@ -125,13 +128,13 @@ func getSpecificArticle(t string) Response { // FIXME: Function to get a specifi
 	// fmt.Println("ACTUAL RESPONSE -------->", r)
 	return r
 }
-func checkIsLinkValid(linkSlice []Link, choice string) bool { // Function to check that the user has inputted a valid link (based on the current page)
+func checkIsLinkValid(linkSlice []Link, choice string) (bool, string) { // Function to check that the user has inputted a valid link (based on the current page)
 	for _, v := range linkSlice {
-		if strings.ToLower(v.Title) == choice {
-			return true
-		}
+		if strings.EqualFold(v.Title, choice) {
+			return true, v.Title
+		} // WARNING: SUS
 	}
-	return false
+	return false, ""
 }
 func getAndDisplayLinks(p Page) []Link { // Function that prints all the links in a page to the console, in a easier-to-read format.
 	fmt.Printf("\nLinks from the page `%s`:\n", p.Title)
@@ -147,16 +150,23 @@ func getPageFromResponse(res Response) Page {
 	}
 	return p
 }
-func startGame(p Page, t string) {
+func startGame(p Page, t string) int {
+	count := 0
 	currentPage := p
 	for currentPage.Title != t {
 		currentLinks := getAndDisplayLinks(currentPage)
+		fmt.Printf("Current page: %s, Current target: %s\n", t, currentPage.Title)
 		userChoice := getUserInput()
-		if checkIsLinkValid(currentLinks, userChoice) {
-			selectedArticle := getSpecificArticle(userChoice)
+		isLinkValid, validChoice := checkIsLinkValid(currentLinks, userChoice)
+		if isLinkValid {
+			selectedArticle := getSpecificArticle(validChoice)
 			currentPage = getPageFromResponse(selectedArticle)
+			count++
+		} else {
+			fmt.Println("Link not found !")
 		}
 	}
+	return count
 }
 
 /*
