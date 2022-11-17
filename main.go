@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -28,6 +29,7 @@ func getUserInput() string { // Prompt for option, return user input as string
 func handleInput() { // Function to handle user input and call corresponding functions
 	var action string
 	var target string
+	var startTime time.Time
 	for action != "quit" {
 		var startPage Page
 		count := 0
@@ -43,11 +45,16 @@ func handleInput() { // Function to handle user input and call corresponding fun
 				startArticleResponse := getRandomArticleWithLinks(true)
 				startPage = getPageFromResponse(startArticleResponse)
 				count = startGame(startPage, target)
+				startTime = time.Now()
 			} else { //TODO: Add a "get target manually" function to set a specific target page
 				fmt.Println("Please set a random target page first, with `get target`!")
 			}
 		}
-		fmt.Printf("\nCongratulations ! It took you %d jumps to get to the page %s from %s\n", count, target, startPage.Title)
+		totalDuration := time.Since(startTime)
+		stringDuration := totalDuration.String()
+		fmt.Println(">>> Congratulations ! <<<")
+		fmt.Printf("You took %d jumps and %s to get to the page %s from %s\n", count, stringDuration, target, startPage.Title)
+
 	}
 }
 func getRandomArticleWithLinks(b bool) Response { // Function to get a random article and return a response struct
