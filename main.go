@@ -42,20 +42,22 @@ func handleInput() { // Function to handle user input and call corresponding fun
 			targetArticleResponse := getRandomArticleWithLinks(false)
 			targetPage := getPageFromResponse(targetArticleResponse)
 			target = targetPage.Title
-			fmt.Printf("\nTarget page:        %s\nTarget description: %v\n", target, targetPage.Extract)
+			fmt.Printf("\nTarget page:\n%s\n%s\n", target, targetPage.Extract)
 		case "get specific target":
+			//TODO: Add a "get target manually" function to set a specific target page
 			fmt.Println("Not implemented yet")
 		case "start":
 			if target != "" {
 				startArticleResponse := getRandomArticleWithLinks(true)
 				startPage = getPageFromResponse(startArticleResponse)
+				fmt.Printf("Starting page:\n%s\n%s\n", startPage.Title, startPage.Extract)
 				startTime = time.Now()
 				count = startGame(startPage, target) // This when the actual gameplay loop starts
 				totalDuration := time.Since(startTime)
 				stringDuration := totalDuration.String()
 				fmt.Println(">>> Congratulations ! <<<")
 				fmt.Printf("You took %d jumps and %s to get to the page %s from %s\n", count, stringDuration, target, startPage.Title)
-			} else { //TODO: Add a "get target manually" function to set a specific target page
+			} else {
 				fmt.Println("Please set a target page first, with 'get random target' or 'get specific target'!")
 			}
 		case "help":
@@ -76,9 +78,12 @@ func getRandomArticleWithLinks(b bool) Response { // Function to get a random ar
 		"format":       "json",
 		"generator":    "random",
 		"grnnamespace": "0",
-		"prop":         "links",
+		"prop":         "links|extracts",
 		"pllimit":      "max",
 		"plnamespace":  "0",
+		"exintro":      "",
+		"explaintext":  "",
+		"redirects":    "1",
 	} // https://en.wikipedia.org/w/api.php?&generator=random&grnnamespace=0&prop=links&pllimit=max&plnamespace=0&action=query&format=json
 	if !b { // If function is passed false, change params to extracts
 		params["prop"] = "extracts"
@@ -118,13 +123,14 @@ func getSpecificArticle(t string) Response { // FIXME: Function to get a specifi
 	fmt.Println("GetSpecificArticle called -----------------")
 	baseURL := "https://en.wikipedia.org/w/api.php?"
 	var params = map[string]string{
-		"action": "query",
-		"format": "json",
-		// "generator":    "random",
-		// "grnnamespace": "0",
-		"prop":        "links",
+		"action":      "query",
+		"format":      "json",
+		"prop":        "links|extracts",
 		"pllimit":     "max",
 		"plnamespace": "0",
+		"exintro":     "",
+		"explaintext": "",
+		"redirects":   "1",
 		"titles":      url.QueryEscape(t),
 	}
 
@@ -174,12 +180,12 @@ func startGame(p Page, t string) int {
 	currentPage := p
 	for currentPage.Title != t {
 		currentLinks := getAndDisplayLinks(currentPage)
-		fmt.Printf("Current page:   %s\n, Current target: %s\n", currentPage.Title, t)
 		userChoice := getUserInput()
 		isLinkValid, validChoice := checkIsLinkValid(currentLinks, userChoice)
 		if isLinkValid {
 			selectedArticle := getSpecificArticle(validChoice)
 			currentPage = getPageFromResponse(selectedArticle)
+			fmt.Printf("Target page: %s\nCurrent page:   %s\n%s\n", t, currentPage.Title, currentPage.Extract)
 			count++
 		} else {
 			fmt.Println("Link not found !")
